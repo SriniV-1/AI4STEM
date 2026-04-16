@@ -1,0 +1,5 @@
+{
+  "name": "AI4STEM: Multi-Agent Content Lab",
+  "description": "A multi-agent system for generating educational documents with specialized agents for planning, content, visuals, and assessment.",
+  "requestFramePermissions": []
+}
