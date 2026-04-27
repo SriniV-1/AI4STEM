@@ -19,7 +19,8 @@ import {
   Upload,
   X,
   FileUp,
-  RefreshCw
+  RefreshCw,
+  Share2
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -314,7 +315,6 @@ flowchart TB
 
       // Check for visuals (Image or Diagram)
       let visualUrl = task.image_url;
-      let isDiagram = false;
       
       // Experimental: Capture rendered Mermaid diagram
       if (!visualUrl) {
@@ -325,14 +325,9 @@ flowchart TB
           if (svgElement) {
             const serializer = new XMLSerializer();
             const source = '<?xml version="1.0" standalone="no"?>\r\n' + serializer.serializeToString(svgElement);
-            const image = new Image();
-            const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-            
-            // Note: SVG to Canvas is async, so we just use the blob URL if possible
-            // But pptxgen needs base64 or a real URL. Blobs work in modern browsers.
-            visualUrl = url;
-            isDiagram = true;
+            // Convert SVG to Base64 Data URI for better PPTX compatibility
+            const base64 = btoa(unescape(encodeURIComponent(source)));
+            visualUrl = `data:image/svg+xml;base64,${base64}`;
           }
         } catch (e) {
           console.error("Failed to capture diagram for PPTX:", e);
@@ -340,12 +335,20 @@ flowchart TB
       }
 
       if (visualUrl) {
-        // Layout with visual - fixed positions to prevent "all over the place"
-        slide.addImage({ 
-          path: visualUrl, 
+        // Correctly route to 'data' or 'path' based on content type
+        const imgOptions: any = { 
           x: 0.5, y: 1.2, w: 4.8, h: 3.8,
           sizing: { type: 'contain', w: 4.8, h: 3.8 }
-        });
+        };
+
+        if (visualUrl.startsWith('data:')) {
+          imgOptions.data = visualUrl;
+        } else {
+          imgOptions.path = visualUrl;
+        }
+
+        slide.addImage(imgOptions);
+
         slide.addText(contentParts, { 
           x: 5.5, y: 1.2, w: 4.0, h: 4.0, 
           valign: 'top',
@@ -1170,6 +1173,16 @@ flowchart TB
                 All agents have completed their tasks. The Critic Agent has verified the content for pedagogical alignment.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert("Link copied to clipboard!");
+                  }}
+                  className="bg-white/5 text-white border border-white/20 px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2"
+                >
+                  <Share2 size={18} />
+                  Share
+                </button>
                 <button 
                   onClick={() => window.print()}
                   className="bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2"
